@@ -28,6 +28,11 @@ struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @State private var showSession = false
 
+    var nextWord: UserWord? {
+        let now = Date()
+        return words.first { $0.nextReviewDate <= now }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -39,7 +44,7 @@ struct HomeView: View {
                     .frame(height: 150)
                     .padding()
                     
-                    Button("Начать сессию (\(words.filter { $0.nextReviewDate <= Date() }.count))") {
+                    Button("Начать сессию") {
                         showSession = true
                     }
                     .buttonStyle(.borderedProminent)
@@ -63,7 +68,7 @@ struct HomeView: View {
             }
             .navigationTitle("Тренажер")
             .sheet(isPresented: $showSession) {
-                if let word = words.filter({ $0.nextReviewDate <= Date() }).first {
+                if let word = nextWord {
                     FlashcardView(word: word)
                 } else {
                     Text("Всё повторено!")
