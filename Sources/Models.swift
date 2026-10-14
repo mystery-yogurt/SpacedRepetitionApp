@@ -4,22 +4,26 @@ import RealmSwift
 
 @Model
 final class UserWord {
-    var id: UUID = UUID()
+    var id: UUID
     var word: String
     var translation: String
     var transcription: String
     var example: String
-
-    var repetitions: Int = 0
-    var interval: Int = 0
-    var easeFactor: Double = 2.5
+    
+    var repetitions: Int
+    var interval: Int
+    var easeFactor: Double
     var nextReviewDate: Date
     
     init(word: String, translation: String, transcription: String = "", example: String = "") {
+        self.id = UUID()
         self.word = word
         self.translation = translation
         self.transcription = transcription
         self.example = example
+        self.repetitions = 0
+        self.interval = 0
+        self.easeFactor = 2.5
         self.nextReviewDate = Date()
     }
 }
