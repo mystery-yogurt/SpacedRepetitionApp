@@ -4,7 +4,7 @@ import RealmSwift
 import UserNotifications
 
 @main
-struct SpacedRepetitionApp: App {
+struct SpacedRepetitionApp: SwiftUI.App {
     var sharedModelContainer: ModelContainer = {
         let schema = SwiftData.Schema([UserWord.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
