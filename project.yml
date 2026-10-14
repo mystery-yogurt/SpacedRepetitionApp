@@ -1,0 +1,17 @@
+name: SpacedRepetition
+options:
+  bundleIdPrefix: com.example
+packages:
+  Realm:
+    url: https://github.com/realm/realm-swift.git
+    from: 10.49.0
+targets:
+  SpacedRepetition:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources: [Sources]
+    dependencies:
+      - package: Realm
+    settings:
+      INFOPLIST_KEY_NSCameraUsageDescription: "Камера используется для оптического распознавания слов (OCR)."
