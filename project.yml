@@ -13,6 +13,7 @@ targets:
     sources: [Sources]
     dependencies:
       - package: Realm
+        product: RealmSwift
     settings:
       GENERATE_INFOPLIST_FILE: YES
       CURRENT_PROJECT_VERSION: 1
