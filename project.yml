@@ -1,6 +1,7 @@
 name: SpacedRepetition
 options:
   bundleIdPrefix: com.example
+  xcodeVersion: "15.4"
 packages:
   Realm:
     url: https://github.com/realm/realm-swift.git
