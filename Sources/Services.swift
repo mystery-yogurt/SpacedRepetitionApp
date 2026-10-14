@@ -28,8 +28,11 @@ class SM2Algorithm {
             word.repetitions = 0
             word.interval = 1
         }
-        word.easeFactor = max(1.3, word.easeFactor + (0.1 - (5.0 - Double(quality)) * (0.08 + (5.0 - Double(quality)) * 0.02)))
+        
+        let newEase = word.easeFactor + (0.1 - (5.0 - Double(quality)) * (0.08 + (5.0 - Double(quality)) * 0.02))
+        word.easeFactor = max(1.3, newEase)
         word.nextReviewDate = Calendar.current.date(byAdding: .day, value: word.interval, to: Date()) ?? Date()
+        
         scheduleNotification(for: word)
     }
     
