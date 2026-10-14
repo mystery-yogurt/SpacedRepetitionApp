@@ -1,0 +1,36 @@
+name: Build Simulator App
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Project
+        run: xcodegen generate
+
+      - name: Build App for iOS Simulator
+        run: |
+          xcodebuild -project SpacedRepetition.xcodeproj \
+          -scheme SpacedRepetition \
+          -sdk iphonesimulator \
+          -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+          -configuration Debug \
+          build \
+          SYMROOT="${{ github.workspace }}/build"
+
+      - name: Create ZIP Archive
+        run: |
+          cd build/Debug-iphonesimulator
+          zip -r SpacedRepetitionApp.zip SpacedRepetition.app
+
+      - name: Upload Artifact for Emulator
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpacedRepetition-Emulator-Ready
+          path: build/Debug-iphonesimulator/SpacedRepetitionApp.zip
