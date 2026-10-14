@@ -6,7 +6,7 @@ import UserNotifications
 @main
 struct SpacedRepetitionApp: App {
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([UserWord.self])
+        let schema = SwiftData.Schema([UserWord.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         return try! ModelContainer(for: schema, configurations: [config])
     }()
