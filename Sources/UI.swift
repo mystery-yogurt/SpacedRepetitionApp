@@ -1,10 +1,20 @@
 import SwiftUI
 import SwiftData
 import Charts
-import VisionKit
+
+struct DailyStat: Identifiable {
+    let id = UUID()
+    let day: String
+    let count: Int
+}
 
 class HomeViewModel: ObservableObject {
-    @Published var chartData: [(day: String, count: Int)] = [("Пн", 12), ("Вт", 25), ("Ср", 18), ("Чт", 30)]
+    @Published var chartData: [DailyStat] = [
+        DailyStat(day: "Пн", count: 12),
+        DailyStat(day: "Вт", count: 25),
+        DailyStat(day: "Ср", count: 18),
+        DailyStat(day: "Чт", count: 30)
+    ]
 }
 
 class FlashcardViewModel: ObservableObject {
@@ -22,15 +32,18 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    Chart(viewModel.chartData, id: \.day) { data in
+                    Chart(viewModel.chartData) { data in
                         BarMark(x: .value("Day", data.day), y: .value("Count", data.count))
                             .foregroundStyle(.blue.gradient)
-                    }.frame(height: 150).padding()
+                    }
+                    .frame(height: 150)
+                    .padding()
                     
                     Button("Начать сессию (\(words.filter { $0.nextReviewDate <= Date() }.count))") {
                         showSession = true
                     }
-                    .buttonStyle(.borderedProminent).controlSize(.large)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                     
                     ForEach(words) { word in
                         HStack {
@@ -40,8 +53,12 @@ struct HomeView: View {
                             }
                             Spacer()
                             Text(word.translation)
-                        }.padding().background(Color.gray.opacity(0.1)).cornerRadius(10)
-                    }.padding(.horizontal)
+                        }
+                        .padding()
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(10)
+                    }
+                    .padding(.horizontal)
                 }
             }
             .navigationTitle("Тренажер")
