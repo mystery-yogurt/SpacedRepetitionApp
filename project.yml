@@ -17,6 +17,8 @@ targets:
     dependencies:
       - package: RealmSwift
         product: RealmSwift
+      - package: RealmSwift
+        product: Realm
     info:
       path: FlashcardsApp/Info.plist
       properties:
