@@ -9,6 +9,10 @@ public class RealmDictionaryWord: Object {
     @Persisted public var exampleUsage: String = ""
     @Persisted public var frequencyRank: Int = 0
 
+    public required override init() {
+        super.init()
+    }
+
     public convenience init(
         word: String,
         transcription: String,
@@ -34,7 +38,6 @@ public struct DictionaryWordDTO: Codable {
     public let frequencyRank: Int
 }
 
-/// Потокобезопасная структура для передачи в SwiftUI
 public struct DictionaryWordItem: Identifiable, Hashable, Sendable {
     public let id: String
     public let word: String
