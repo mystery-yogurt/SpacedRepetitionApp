@@ -4,6 +4,14 @@ import Charts
 struct WeeklyStatsChartView: View {
     let stats: [DailyProgress]
 
+    private var chartStats: [DailyProgress] {
+        if stats.isEmpty {
+            let weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+            return weekdays.map { DailyProgress(dayOfWeek: $0, wordsLearned: 0, date: Date()) }
+        }
+        return stats
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -17,7 +25,7 @@ struct WeeklyStatsChartView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Chart(stats) { item in
+            Chart(chartStats) { item in
                 BarMark(
                     x: .value("День", item.dayOfWeek),
                     y: .value("Изучено слов", item.wordsLearned)
