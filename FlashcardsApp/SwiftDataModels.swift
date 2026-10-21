@@ -3,14 +3,14 @@ import SwiftData
 
 @Model
 public final class DeckEntity {
-    @Attribute(.unique) public var id: UUID
+    public var id: UUID
     public var title: String
     public var deckDescription: String
     public var iconName: String
     public var createdAt: Date
 
     @Relationship(deleteRule: .cascade, inverse: \CardEntity.deck)
-    public var cards: [CardEntity] = []
+    public var cards: [CardEntity]? = []
 
     public init(
         id: UUID = UUID(),
@@ -24,28 +24,33 @@ public final class DeckEntity {
         self.deckDescription = deckDescription
         self.iconName = iconName
         self.createdAt = createdAt
+        self.cards = []
+    }
+
+    public var safeCards: [CardEntity] {
+        cards ?? []
     }
 
     public var dueCardsCount: Int {
         let now = Date()
-        return cards.filter { $0.nextDueDate <= now }.count
+        return safeCards.filter { $0.nextDueDate <= now }.count
     }
 }
 
 @Model
 public final class CardEntity {
-    @Attribute(.unique) public var id: UUID
+    public var id: UUID
     public var word: String
     public var transcription: String
     public var translation: String
     public var exampleUsage: String
 
-    // SM-2 параметры и интервалы повторений
-    public var repetitionLevel: Int      // 0 - 5
-    public var easinessFactor: Double    // SM-2 EF, по умолчанию 2.5
-    public var intervalDays: Int         // Текущий интервал в днях
-    public var repetitions: Int          // Число успешных повторений подряд
-    public var nextDueDate: Date         // Точная дата следующего повтора
+    // SM-2 параметры
+    public var repetitionLevel: Int
+    public var easinessFactor: Double
+    public var intervalDays: Int
+    public var repetitions: Int
+    public var nextDueDate: Date
     public var lastReviewedDate: Date?
 
     public var deck: DeckEntity?
@@ -78,7 +83,6 @@ public final class CardEntity {
         self.deck = deck
     }
 
-    /// Преобразование в UI-модель WordCard
     public func toWordCard() -> WordCard {
         WordCard(
             id: id,
@@ -90,7 +94,6 @@ public final class CardEntity {
         )
     }
 
-    /// Расчет интервала по алгоритму SuperMemo SM-2
     public func applySM2Review(rating: Int) {
         let clampedRating = min(max(rating, 0), 5)
         self.repetitionLevel = clampedRating
@@ -102,7 +105,7 @@ public final class CardEntity {
             } else if repetitions == 1 {
                 intervalDays = 6
             } else {
-                intervalDays = Int(round(Double(intervalDays) * easinessFactor))
+                intervalDays = max(1, Int(round(Double(intervalDays) * easinessFactor)))
             }
             repetitions += 1
         } else {
@@ -110,12 +113,10 @@ public final class CardEntity {
             intervalDays = 1
         }
 
-        // Обновление коэффициента забывания/легкости (EF)
         let q = Double(clampedRating)
         let newEF = easinessFactor + (0.1 - (5.0 - q) * (0.08 + (5.0 - q) * 0.02))
         self.easinessFactor = max(newEF, 1.3)
 
-        // Вычисление даты следующего показа
         self.nextDueDate = Calendar.current.date(
             byAdding: .day,
             value: intervalDays,
@@ -126,7 +127,7 @@ public final class CardEntity {
 
 @Model
 public final class DailyProgressEntity {
-    @Attribute(.unique) public var id: UUID
+    public var id: UUID
     public var dayOfWeek: String
     public var wordsLearned: Int
     public var date: Date
