@@ -1,13 +1,12 @@
 import SwiftUI
 import SwiftData
 
-/// Экран поиска и просмотра 1000 слов во вспомогательном офлайн-хранилище Realm
 public struct RealmDictionaryBrowserView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @State private var searchText: String = ""
-    @State private var searchResults: [RealmDictionaryWord] = []
-    @State private var selectedWordToImport: RealmDictionaryWord?
+    @State private var searchResults: [DictionaryWordItem] = []
+    @State private var selectedWordToImport: DictionaryWordItem?
     @State private var isImportAlertPresented: Bool = false
 
     public var targetDeck: DeckEntity?
@@ -19,8 +18,8 @@ public struct RealmDictionaryBrowserView: View {
     public var body: some View {
         NavigationStack {
             List {
-                Section(header: Text("Всего в офлайн-базе: 1000 слов")) {
-                    ForEach(searchResults, id: \.id) { word in
+                Section(header: Text("Всего в офлайн-базе: \(searchResults.count) слов")) {
+                    ForEach(searchResults) { word in
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
                                 Text(word.word)
@@ -88,7 +87,7 @@ public struct RealmDictionaryBrowserView: View {
         self.searchResults = RealmDictionaryService.shared.search(query: query)
     }
 
-    private func importToSwiftData(word: RealmDictionaryWord) {
+    private func importToSwiftData(word: DictionaryWordItem) {
         let card = CardEntity(
             word: word.word,
             transcription: word.transcription,
