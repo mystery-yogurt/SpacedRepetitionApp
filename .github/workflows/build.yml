@@ -15,7 +15,6 @@ jobs:
 
       - name: Select Xcode 16
         run: |
-          # Автоматически выбираем установленный Xcode 16
           XCODE_16=$(find /Applications -maxdepth 1 -name "Xcode_16*.app" | head -n 1)
           if [ -d "$XCODE_16" ]; then
             echo "Selecting $XCODE_16"
@@ -30,6 +29,10 @@ jobs:
 
       - name: Generate Xcode Project
         run: xcodegen generate
+
+      - name: Resolve Swift Package Dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies -project FlashcardsApp.xcodeproj
 
       - name: Build for iOS Simulator
         run: |
