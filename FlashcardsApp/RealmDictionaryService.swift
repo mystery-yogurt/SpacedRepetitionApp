@@ -1,7 +1,6 @@
 import Foundation
 import RealmSwift
 
-@MainActor
 public final class RealmDictionaryService: ObservableObject {
     public static let shared = RealmDictionaryService()
 
@@ -10,23 +9,18 @@ public final class RealmDictionaryService: ObservableObject {
 
     private var realmConfig: Realm.Configuration
 
-    private init() {
+    public init() {
         var config = Realm.Configuration()
         config.schemaVersion = 1
         config.deleteRealmIfMigrationNeeded = true
-        // Изолируем Realm, чтобы он не пытался индексировать SwiftData классы
         config.objectTypes = [RealmDictionaryWord.self]
         self.realmConfig = config
-    }
-
-    private func getRealm() -> Realm? {
-        try? Realm(configuration: realmConfig)
     }
 
     public func initializeDictionaryIfNeeded() {
         guard !isReady else { return }
 
-        guard let realm = getRealm() else {
+        guard let realm = try? Realm(configuration: realmConfig) else {
             print("Не удалось открыть Realm")
             return
         }
@@ -53,12 +47,15 @@ public final class RealmDictionaryService: ObservableObject {
             }
         }
 
-        self.wordsCount = realm.objects(RealmDictionaryWord.self).count
-        self.isReady = true
+        let finalCount = (try? Realm(configuration: realmConfig))?.objects(RealmDictionaryWord.self).count ?? 0
+        DispatchQueue.main.async {
+            self.wordsCount = finalCount
+            self.isReady = true
+        }
     }
 
     public func lookup(word: String) -> DictionaryWordItem? {
-        guard let realm = getRealm() else { return nil }
+        guard let realm = try? Realm(configuration: realmConfig) else { return nil }
         let clean = word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !clean.isEmpty else { return nil }
 
@@ -69,7 +66,7 @@ public final class RealmDictionaryService: ObservableObject {
     }
 
     public func search(query: String, limit: Int = 50) -> [DictionaryWordItem] {
-        guard let realm = getRealm() else { return [] }
+        guard let realm = try? Realm(configuration: realmConfig) else { return [] }
         let clean = query.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let results: Results<RealmDictionaryWord>
