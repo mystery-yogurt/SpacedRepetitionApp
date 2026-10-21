@@ -11,10 +11,11 @@ public struct StudySessionView: View {
     public var body: some View {
         NavigationStack {
             VStack {
-                if viewModel.isCompleted || viewModel.cards.isEmpty {
+                if viewModel.isLoading {
+                    ProgressView("Загрузка очереди...")
+                } else if viewModel.isCompleted || viewModel.cards.isEmpty {
                     completionView
                 } else if let card = viewModel.currentCard {
-                    // Индикатор прогресса
                     HStack {
                         Text(viewModel.progressText)
                             .font(.subheadline)
@@ -32,12 +33,10 @@ public struct StudySessionView: View {
 
                     Spacer()
 
-                    // Двусторонняя карточка
                     FlashcardView(card: card, isFlipped: $viewModel.isCardFlipped)
 
                     Spacer()
 
-                    // Кнопки оценки SM-2
                     if viewModel.isCardFlipped {
                         VStack(spacing: 8) {
                             Text("Оцените легкость ответа (SM-2):")
@@ -97,7 +96,7 @@ public struct StudySessionView: View {
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text("Все запланированные слова успешно повторены. SwiftData обновила даты следующих показов.")
+            Text("Все запланированные слова успешно повторены. SwiftData сохранила обновленные интервалы.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
