@@ -1,17 +1,29 @@
 import Foundation
 import SwiftUI
+import SwiftData
 
+@MainActor
 public final class StudySessionViewModel: ObservableObject {
-    @Published public var cards: [WordCard] = []
+    @Published public var cards: [CardEntity] = []
     @Published public var currentIndex: Int = 0
     @Published public var isCardFlipped: Bool = false
     @Published public var isCompleted: Bool = false
 
-    public init() {
-        loadMockCards()
+    private var modelContext: ModelContext?
+
+    public init() {}
+
+    public func configure(with context: ModelContext) {
+        self.modelContext = context
+        loadDueCards()
     }
 
     public var currentCard: WordCard? {
+        guard currentIndex < cards.count else { return nil }
+        return cards[currentIndex].toWordCard()
+    }
+
+    public var currentCardEntity: CardEntity? {
         guard currentIndex < cards.count else { return nil }
         return cards[currentIndex]
     }
@@ -22,12 +34,14 @@ public final class StudySessionViewModel: ObservableObject {
     }
 
     public func rateCurrentCard(rating: Int) {
-        guard currentIndex < cards.count else { return }
+        guard currentIndex < cards.count, let context = modelContext else { return }
 
-        // Обновляем уровень запоминания (0 - 5)
-        cards[currentIndex].repetitionLevel = min(max(rating, 0), 5)
+        let entity = cards[currentIndex]
+        // Применяем математическую модель SM-2
+        entity.applySM2Review(rating: rating)
 
-        // Переход к следующей карточке
+        try? context.save()
+
         withAnimation {
             isCardFlipped = false
             if currentIndex + 1 < cards.count {
@@ -38,29 +52,23 @@ public final class StudySessionViewModel: ObservableObject {
         }
     }
 
-    private func loadMockCards() {
-        self.cards = [
-            WordCard(
-                word: "Resilient",
-                transcription: "[rɪˈzɪl.jənt]",
-                translation: "Стойкий, жизнерадостный",
-                exampleUsage: "Babies are generally remarkably resilient.",
-                repetitionLevel: 2
-            ),
-            WordCard(
-                word: "Ubiquitous",
-                transcription: "[juːˈbɪk.wə.təs]",
-                translation: "Вездесущий, повсеместный",
-                exampleUsage: "Smartphones have become ubiquitous in daily life.",
-                repetitionLevel: 4
-            ),
-            WordCard(
-                word: "Ephemeral",
-                transcription: "[ɪˈfem.ər.əl]",
-                translation: "Эфемерный, недолговечный",
-                exampleUsage: "Fame in the digital age is often ephemeral.",
-                repetitionLevel: 1
-            )
-        ]
+    private func loadDueCards() {
+        guard let context = modelContext else { return }
+        let now = Date()
+        let fetchDescriptor = FetchDescriptor<CardEntity>(
+            predicate: #Predicate<CardEntity> { card in
+                card.nextDueDate <= now
+            },
+            sortBy: [SortDescriptor(\CardEntity.nextDueDate, order: .forward)]
+        )
+
+        let fetched = (try? context.fetch(fetchDescriptor)) ?? []
+        if fetched.isEmpty {
+            // Если на сегодня нет карточек, берем любые 5 для тренировки
+            let allFetch = FetchDescriptor<CardEntity>(sortBy: [SortDescriptor(\CardEntity.word)])
+            self.cards = Array(((try? context.fetch(allFetch)) ?? []).prefix(5))
+        } else {
+            self.cards = fetched
+        }
     }
 }
