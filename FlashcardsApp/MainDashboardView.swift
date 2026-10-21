@@ -1,14 +1,12 @@
 import SwiftUI
 
-struct MainDashboardView: View {
-    // Демо-данные для ЛР1 (в ЛР3 будут заменены на SwiftData)
+public struct MainDashboardView: View {
     @State private var decks: [Deck] = [
         Deck(title: "General English", description: "Повседневная лексика", totalCards: 120, dueCards: 15, iconName: "book.fill"),
         Deck(title: "IT & Software", description: "Термины разработки и архитектуры", totalCards: 85, dueCards: 8, iconName: "chevron.left.forwardslash.chevron.right"),
         Deck(title: "Travel & Airport", description: "Для путешествий и поездок", totalCards: 45, dueCards: 0, iconName: "airplane")
     ]
 
-    // Статистика за последние 7 дней (Swift Charts)
     @State private var weeklyStats: [DailyProgress] = [
         DailyProgress(dayOfWeek: "Пн", wordsLearned: 12, date: Date()),
         DailyProgress(dayOfWeek: "Вт", wordsLearned: 18, date: Date()),
@@ -20,16 +18,19 @@ struct MainDashboardView: View {
     ]
 
     @State private var isStudySessionActive = false
+    @State private var isAddWordActive = false
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // 1. График статистики (Swift Charts)
+                    // Swift Charts статистика
                     WeeklyStatsChartView(stats: weeklyStats)
                         .padding(.horizontal)
 
-                    // 2. Кнопка "Запуск сессии повторений"
+                    // Запуск сессии интервального повторения
                     Button(action: {
                         isStudySessionActive = true
                     }) {
@@ -48,7 +49,7 @@ struct MainDashboardView: View {
                     }
                     .padding(.horizontal)
 
-                    // 3. Каталог личных словарей
+                    // Список словарей
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Мои словари")
                             .font(.title3)
@@ -70,8 +71,33 @@ struct MainDashboardView: View {
                 .padding(.vertical)
             }
             .navigationTitle("SM-2 Карточки")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: {
+                        isAddWordActive = true
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                    }
+                }
+            }
             .fullScreenCover(isPresented: $isStudySessionActive) {
                 StudySessionView()
+            }
+            .sheet(isPresented: $isAddWordActive) {
+                AddWordView { newCard in
+                    // Обновляем счетчик для демо-режима
+                    if let firstIndex = decks.indices.first {
+                        let current = decks[firstIndex]
+                        decks[firstIndex] = Deck(
+                            title: current.title,
+                            description: current.description,
+                            totalCards: current.totalCards + 1,
+                            dueCards: current.dueCards + 1,
+                            iconName: current.iconName
+                        )
+                    }
+                }
             }
         }
     }
