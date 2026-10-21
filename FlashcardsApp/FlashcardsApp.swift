@@ -13,13 +13,15 @@ struct FlashcardsApp: App {
         ])
         
         do {
-            let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-            self.container = try ModelContainer(for: schema, configurations: [config])
+            self.container = try ModelContainer(for: schema)
         } catch {
-            print("Ошибка загрузки постоянного хранилища: \(error). Запуск в памяти.")
-            let fallbackConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-            self.container = (try? ModelContainer(for: schema, configurations: [fallbackConfig]))
-                ?? (try! ModelContainer(for: schema))
+            print("Предупреждение: создание стандартного хранилища завершилось с \(error). Запуск с конфигурацией в памяти.")
+            let inMemoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            do {
+                self.container = try ModelContainer(for: schema, configurations: [inMemoryConfig])
+            } catch {
+                fatalError("Не удалось создать ModelContainer: \(error)")
+            }
         }
     }
 
