@@ -18,7 +18,7 @@ public struct MainDashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Swift Charts статистика из SwiftData
+                    // Статистика за неделю
                     WeeklyStatsChartView(
                         stats: weeklyStats.map {
                             DailyProgress(dayOfWeek: $0.dayOfWeek, wordsLearned: $0.wordsLearned, date: $0.date)
@@ -26,7 +26,7 @@ public struct MainDashboardView: View {
                     )
                     .padding(.horizontal)
 
-                    // Кнопка сессии интервального повторения
+                    // Кнопка сессии
                     Button(action: {
                         isStudySessionActive = true
                     }) {
@@ -45,7 +45,7 @@ public struct MainDashboardView: View {
                     }
                     .padding(.horizontal)
 
-                    // Баннер офлайн-базы Realm (1000 слов)
+                    // Баннер словаря Realm
                     Button(action: {
                         isRealmDictionaryActive = true
                     }) {
@@ -62,7 +62,7 @@ public struct MainDashboardView: View {
                                     .font(.subheadline)
                                     .fontWeight(.bold)
                                     .foregroundColor(.primary)
-                                Text("\(realmService.wordsCount) популярных иностранных слов")
+                                Text("\(realmService.wordsCount > 0 ? "\(realmService.wordsCount) слов" : "Загрузка...")")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -79,14 +79,14 @@ public struct MainDashboardView: View {
                     }
                     .padding(.horizontal)
 
-                    // Персональные словари из SwiftData
+                    // Список колод
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("Мои словари (SwiftData)")
                                 .font(.title3)
                                 .bold()
                             Spacer()
-                            Text("Всего колод: \(decks.count)")
+                            Text("Колод: \(decks.count)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -98,7 +98,7 @@ public struct MainDashboardView: View {
                                     deck: Deck(
                                         title: deckEntity.title,
                                         description: deckEntity.deckDescription,
-                                        totalCards: deckEntity.cards.count,
+                                        totalCards: deckEntity.safeCards.count,
                                         dueCards: deckEntity.dueCardsCount,
                                         iconName: deckEntity.iconName
                                     )
@@ -125,8 +125,9 @@ public struct MainDashboardView: View {
                     }
                 }
             }
-            .onAppear {
+            .task {
                 DataSeeder.seedInitialDataIfNeeded(context: modelContext)
+                realmService.initializeDictionaryIfNeeded()
             }
             .fullScreenCover(isPresented: $isStudySessionActive) {
                 StudySessionView()
