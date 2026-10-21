@@ -30,37 +30,36 @@ public final class RealmDictionaryService: ObservableObject {
     public func initializeDictionaryIfNeeded() {
         guard !isReady else { return }
 
-        guard let realm = getRealm() else {
-            print("Не удалось открыть Realm")
-            return
-        }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self, let realm = self.getRealm() else { return }
 
-        let count = realm.objects(RealmDictionaryWord.self).count
-        if count < 1000 {
-            let dtos = RealmSeedDataGenerator.generate1000Words()
-            do {
-                try realm.write {
-                    realm.delete(realm.objects(RealmDictionaryWord.self))
-                    for dto in dtos {
-                        let entity = RealmDictionaryWord(
-                            word: dto.word,
-                            transcription: dto.transcription,
-                            translation: dto.translation,
-                            exampleUsage: dto.exampleUsage,
-                            frequencyRank: dto.frequencyRank
-                        )
-                        realm.add(entity)
+            let count = realm.objects(RealmDictionaryWord.self).count
+            if count < 1000 {
+                let dtos = RealmSeedDataGenerator.generate1000Words()
+                do {
+                    try realm.write {
+                        realm.delete(realm.objects(RealmDictionaryWord.self))
+                        for dto in dtos {
+                            let entity = RealmDictionaryWord(
+                                word: dto.word,
+                                transcription: dto.transcription,
+                                translation: dto.translation,
+                                exampleUsage: dto.exampleUsage,
+                                frequencyRank: dto.frequencyRank
+                            )
+                            realm.add(entity, update: .modified)
+                        }
                     }
+                } catch {
+                    print("Ошибка записи в Realm: \(error)")
                 }
-            } catch {
-                print("Ошибка записи в Realm: \(error)")
             }
-        }
 
-        let finalCount = (getRealm())?.objects(RealmDictionaryWord.self).count ?? 0
-        DispatchQueue.main.async {
-            self.wordsCount = finalCount
-            self.isReady = true
+            let finalCount = (self.getRealm())?.objects(RealmDictionaryWord.self).count ?? 0
+            DispatchQueue.main.async {
+                self.wordsCount = finalCount
+                self.isReady = true
+            }
         }
     }
 
