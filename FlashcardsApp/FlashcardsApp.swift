@@ -3,29 +3,30 @@ import SwiftData
 
 @main
 struct FlashcardsApp: App {
-    let modelContainer: ModelContainer
+    let container: ModelContainer
 
     init() {
+        let schema = Schema([
+            DeckEntity.self,
+            CardEntity.self,
+            DailyProgressEntity.self
+        ])
+        
         do {
-            let schema = Schema([
-                DeckEntity.self,
-                CardEntity.self,
-                DailyProgressEntity.self
-            ])
             let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-            self.modelContainer = try ModelContainer(for: schema, configurations: [config])
+            self.container = try ModelContainer(for: schema, configurations: [config])
         } catch {
-            fatalError("Failed to initialize SwiftData container: \(error)")
+            print("Ошибка загрузки постоянного хранилища: \(error). Запуск в памяти.")
+            let fallbackConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            self.container = (try? ModelContainer(for: schema, configurations: [fallbackConfig]))
+                ?? (try! ModelContainer(for: schema))
         }
-
-        // Фоновый разогрев вспомогательной БД Realm (1000 слов)
-        _ = RealmDictionaryService.shared
     }
 
     var body: some Scene {
         WindowGroup {
             MainDashboardView()
-                .modelContainer(modelContainer)
         }
+        .modelContainer(container)
     }
 }
