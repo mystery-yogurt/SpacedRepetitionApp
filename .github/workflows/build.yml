@@ -1,0 +1,44 @@
+name: Build iOS Simulator App
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14 # macOS с Xcode 15+ и поддержкой iOS 17 SDK
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Build for iOS Simulator
+        run: |
+          xcodebuild -project FlashcardsApp.xcodeproj \
+                     -scheme FlashcardsApp \
+                     -destination 'generic/platform=iOS Simulator' \
+                     -configuration Debug \
+                     -derivedDataPath derived_data \
+                     CODE_SIGN_IDENTITY="" \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO \
+                     build
+
+      - name: Archive Simulator .app to ZIP
+        run: |
+          cd derived_data/Build/Products/Debug-iphonesimulator
+          zip -r FlashcardsApp-Simulator.zip FlashcardsApp.app
+          mv FlashcardsApp-Simulator.zip ${{ github.workspace }}/
+
+      - name: Upload Simulator Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlashcardsApp-Simulator
+          path: FlashcardsApp-Simulator.zip
