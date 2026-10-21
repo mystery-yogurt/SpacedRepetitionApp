@@ -1,24 +1,16 @@
 import SwiftUI
+import SwiftData
 
 public struct MainDashboardView: View {
-    @State private var decks: [Deck] = [
-        Deck(title: "General English", description: "Повседневная лексика", totalCards: 120, dueCards: 15, iconName: "book.fill"),
-        Deck(title: "IT & Software", description: "Термины разработки и архитектуры", totalCards: 85, dueCards: 8, iconName: "chevron.left.forwardslash.chevron.right"),
-        Deck(title: "Travel & Airport", description: "Для путешествий и поездок", totalCards: 45, dueCards: 0, iconName: "airplane")
-    ]
-
-    @State private var weeklyStats: [DailyProgress] = [
-        DailyProgress(dayOfWeek: "Пн", wordsLearned: 12, date: Date()),
-        DailyProgress(dayOfWeek: "Вт", wordsLearned: 18, date: Date()),
-        DailyProgress(dayOfWeek: "Ср", wordsLearned: 8, date: Date()),
-        DailyProgress(dayOfWeek: "Чт", wordsLearned: 25, date: Date()),
-        DailyProgress(dayOfWeek: "Пт", wordsLearned: 14, date: Date()),
-        DailyProgress(dayOfWeek: "Сб", wordsLearned: 30, date: Date()),
-        DailyProgress(dayOfWeek: "Вс", wordsLearned: 22, date: Date())
-    ]
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \DeckEntity.createdAt, order: .forward) private var decks: [DeckEntity]
+    @Query(sort: \DailyProgressEntity.date, order: .forward) private var weeklyStats: [DailyProgressEntity]
 
     @State private var isStudySessionActive = false
     @State private var isAddWordActive = false
+    @State private var isRealmDictionaryActive = false
+
+    @ObservedObject private var realmService = RealmDictionaryService.shared
 
     public init() {}
 
@@ -26,11 +18,15 @@ public struct MainDashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Swift Charts статистика
-                    WeeklyStatsChartView(stats: weeklyStats)
-                        .padding(.horizontal)
+                    // Swift Charts статистика из SwiftData
+                    WeeklyStatsChartView(
+                        stats: weeklyStats.map {
+                            DailyProgress(dayOfWeek: $0.dayOfWeek, wordsLearned: $0.wordsLearned, date: $0.date)
+                        }
+                    )
+                    .padding(.horizontal)
 
-                    // Запуск сессии интервального повторения
+                    // Кнопка сессии интервального повторения
                     Button(action: {
                         isStudySessionActive = true
                     }) {
@@ -49,21 +45,69 @@ public struct MainDashboardView: View {
                     }
                     .padding(.horizontal)
 
-                    // Список словарей
+                    // Баннер офлайн-базы Realm (1000 слов)
+                    Button(action: {
+                        isRealmDictionaryActive = true
+                    }) {
+                        HStack(spacing: 14) {
+                            Image(systemName: "books.vertical.fill")
+                                .font(.title2)
+                                .foregroundColor(.purple)
+                                .frame(width: 44, height: 44)
+                                .background(Color.purple.opacity(0.15))
+                                .cornerRadius(10)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Базовый офлайн-словарь (Realm)")
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.primary)
+                                Text("\(realmService.wordsCount) популярных иностранных слов")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(14)
+                    }
+                    .padding(.horizontal)
+
+                    // Персональные словари из SwiftData
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Мои словари")
-                            .font(.title3)
-                            .bold()
-                            .padding(.horizontal)
+                        HStack {
+                            Text("Мои словари (SwiftData)")
+                                .font(.title3)
+                                .bold()
+                            Spacer()
+                            Text("Всего колод: \(decks.count)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal)
 
                         LazyVStack(spacing: 8) {
-                            ForEach(decks) { deck in
-                                DeckRowView(deck: deck)
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 8)
-                                    .background(Color(.secondarySystemBackground))
-                                    .cornerRadius(12)
-                                    .padding(.horizontal)
+                            ForEach(decks) { deckEntity in
+                                DeckRowView(
+                                    deck: Deck(
+                                        title: deckEntity.title,
+                                        description: deckEntity.deckDescription,
+                                        totalCards: deckEntity.cards.count,
+                                        dueCards: deckEntity.dueCardsCount,
+                                        iconName: deckEntity.iconName
+                                    )
+                                )
+                                .padding(.horizontal)
+                                .padding(.vertical, 8)
+                                .background(Color(.secondarySystemBackground))
+                                .cornerRadius(12)
+                                .padding(.horizontal)
                             }
                         }
                     }
@@ -81,23 +125,17 @@ public struct MainDashboardView: View {
                     }
                 }
             }
+            .onAppear {
+                DataSeeder.seedInitialDataIfNeeded(context: modelContext)
+            }
             .fullScreenCover(isPresented: $isStudySessionActive) {
                 StudySessionView()
             }
             .sheet(isPresented: $isAddWordActive) {
-                AddWordView { newCard in
-                    // Обновляем счетчик для демо-режима
-                    if let firstIndex = decks.indices.first {
-                        let current = decks[firstIndex]
-                        decks[firstIndex] = Deck(
-                            title: current.title,
-                            description: current.description,
-                            totalCards: current.totalCards + 1,
-                            dueCards: current.dueCards + 1,
-                            iconName: current.iconName
-                        )
-                    }
-                }
+                AddWordView(defaultDeck: decks.first)
+            }
+            .sheet(isPresented: $isRealmDictionaryActive) {
+                RealmDictionaryBrowserView(targetDeck: decks.first)
             }
         }
     }
