@@ -10,7 +10,7 @@ public final class DeckEntity {
     public var createdAt: Date
 
     @Relationship(deleteRule: .cascade, inverse: \CardEntity.deck)
-    public var cards: [CardEntity]? = []
+    public var cards: [CardEntity] = []
 
     public init(
         id: UUID = UUID(),
@@ -27,13 +27,9 @@ public final class DeckEntity {
         self.cards = []
     }
 
-    public var safeCards: [CardEntity] {
-        cards ?? []
-    }
-
     public var dueCardsCount: Int {
         let now = Date()
-        return safeCards.filter { $0.nextDueDate <= now }.count
+        return cards.filter { $0.nextDueDate <= now }.count
     }
 }
 
