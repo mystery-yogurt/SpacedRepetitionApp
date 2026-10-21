@@ -10,7 +10,7 @@ public struct MainDashboardView: View {
     @State private var isAddWordActive = false
     @State private var isRealmDictionaryActive = false
 
-    @ObservedObject private var realmService = RealmDictionaryService.shared
+    @StateObject private var realmService = RealmDictionaryService.shared
 
     public init() {}
 
@@ -26,7 +26,7 @@ public struct MainDashboardView: View {
                     )
                     .padding(.horizontal)
 
-                    // Кнопка сессии
+                    // Кнопка запуска тренировки
                     Button(action: {
                         isStudySessionActive = true
                     }) {
@@ -45,7 +45,7 @@ public struct MainDashboardView: View {
                     }
                     .padding(.horizontal)
 
-                    // Баннер словаря Realm
+                    // Баннер Realm
                     Button(action: {
                         isRealmDictionaryActive = true
                     }) {
@@ -62,7 +62,7 @@ public struct MainDashboardView: View {
                                     .font(.subheadline)
                                     .fontWeight(.bold)
                                     .foregroundColor(.primary)
-                                Text("\(realmService.wordsCount > 0 ? "\(realmService.wordsCount) слов" : "Загрузка...")")
+                                Text(realmService.wordsCount > 0 ? "\(realmService.wordsCount) слов" : "Загрузка...")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -79,7 +79,7 @@ public struct MainDashboardView: View {
                     }
                     .padding(.horizontal)
 
-                    // Список колод
+                    // Список словарей SwiftData
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("Мои словари (SwiftData)")
@@ -98,7 +98,7 @@ public struct MainDashboardView: View {
                                     deck: Deck(
                                         title: deckEntity.title,
                                         description: deckEntity.deckDescription,
-                                        totalCards: deckEntity.safeCards.count,
+                                        totalCards: deckEntity.cards.count,
                                         dueCards: deckEntity.dueCardsCount,
                                         iconName: deckEntity.iconName
                                     )
