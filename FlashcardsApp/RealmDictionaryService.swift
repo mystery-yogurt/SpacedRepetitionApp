@@ -17,10 +17,20 @@ public final class RealmDictionaryService: ObservableObject {
         self.realmConfig = config
     }
 
+    private func getRealm() -> Realm? {
+        if let realm = try? Realm(configuration: realmConfig) {
+            return realm
+        }
+        var inMemoryConfig = Realm.Configuration()
+        inMemoryConfig.inMemoryIdentifier = "OfflineDictionaryBackup"
+        inMemoryConfig.objectTypes = [RealmDictionaryWord.self]
+        return try? Realm(configuration: inMemoryConfig)
+    }
+
     public func initializeDictionaryIfNeeded() {
         guard !isReady else { return }
 
-        guard let realm = try? Realm(configuration: realmConfig) else {
+        guard let realm = getRealm() else {
             print("Не удалось открыть Realm")
             return
         }
@@ -47,7 +57,7 @@ public final class RealmDictionaryService: ObservableObject {
             }
         }
 
-        let finalCount = (try? Realm(configuration: realmConfig))?.objects(RealmDictionaryWord.self).count ?? 0
+        let finalCount = (getRealm())?.objects(RealmDictionaryWord.self).count ?? 0
         DispatchQueue.main.async {
             self.wordsCount = finalCount
             self.isReady = true
@@ -55,7 +65,7 @@ public final class RealmDictionaryService: ObservableObject {
     }
 
     public func lookup(word: String) -> DictionaryWordItem? {
-        guard let realm = try? Realm(configuration: realmConfig) else { return nil }
+        guard let realm = getRealm() else { return nil }
         let clean = word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !clean.isEmpty else { return nil }
 
@@ -66,7 +76,7 @@ public final class RealmDictionaryService: ObservableObject {
     }
 
     public func search(query: String, limit: Int = 50) -> [DictionaryWordItem] {
-        guard let realm = try? Realm(configuration: realmConfig) else { return [] }
+        guard let realm = getRealm() else { return [] }
         let clean = query.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let results: Results<RealmDictionaryWord>
