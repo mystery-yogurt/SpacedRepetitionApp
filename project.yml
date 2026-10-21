@@ -1,0 +1,20 @@
+name: FlashcardsApp
+options:
+  bundleIdPrefix: com.student.variant13
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  FlashcardsApp:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources: [FlashcardsApp]
+    info:
+      path: FlashcardsApp/Info.plist
+      properties:
+        CFBundleDisplayName: "Flashcards"
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
