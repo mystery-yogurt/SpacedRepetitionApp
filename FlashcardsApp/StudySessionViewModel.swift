@@ -8,6 +8,7 @@ public final class StudySessionViewModel: ObservableObject {
     @Published public var currentIndex: Int = 0
     @Published public var isCardFlipped: Bool = false
     @Published public var isCompleted: Bool = false
+    @Published public var isLoading: Bool = true
 
     private var modelContext: ModelContext?
 
@@ -37,7 +38,6 @@ public final class StudySessionViewModel: ObservableObject {
         guard currentIndex < cards.count, let context = modelContext else { return }
 
         let entity = cards[currentIndex]
-        // Применяем математическую модель SM-2
         entity.applySM2Review(rating: rating)
 
         try? context.save()
@@ -64,11 +64,11 @@ public final class StudySessionViewModel: ObservableObject {
 
         let fetched = (try? context.fetch(fetchDescriptor)) ?? []
         if fetched.isEmpty {
-            // Если на сегодня нет карточек, берем любые 5 для тренировки
             let allFetch = FetchDescriptor<CardEntity>(sortBy: [SortDescriptor(\CardEntity.word)])
             self.cards = Array(((try? context.fetch(allFetch)) ?? []).prefix(5))
         } else {
             self.cards = fetched
         }
+        self.isLoading = false
     }
 }
