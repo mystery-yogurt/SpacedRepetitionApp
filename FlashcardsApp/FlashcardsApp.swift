@@ -6,23 +6,34 @@ struct FlashcardsApp: App {
     let container: ModelContainer
 
     init() {
+        self.container = Self.makeModelContainer()
+    }
+
+    @MainActor
+    private static func makeModelContainer() -> ModelContainer {
         let schema = Schema([
             DeckEntity.self,
             CardEntity.self,
             DailyProgressEntity.self
         ])
-        
+
+        let container: ModelContainer
         do {
-            self.container = try ModelContainer(for: schema)
+            let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+            container = try ModelContainer(for: schema, configurations: [config])
         } catch {
-            print("Предупреждение: создание стандартного хранилища завершилось с \(error). Запуск с конфигурацией в памяти.")
-            let inMemoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            print("Предупреждение: не удалось загрузить SQLite хранилище: \(error). Переключение на in-memory.")
+            let inMemConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             do {
-                self.container = try ModelContainer(for: schema, configurations: [inMemoryConfig])
+                container = try ModelContainer(for: schema, configurations: [inMemConfig])
             } catch {
-                fatalError("Не удалось создать ModelContainer: \(error)")
+                fatalError("Критическая ошибка создания ModelContainer: \(error)")
             }
         }
+
+        // Первичное наполнение данными до старта первого экрана
+        DataSeeder.seedInitialDataIfNeeded(context: container.mainContext)
+        return container
     }
 
     var body: some Scene {
