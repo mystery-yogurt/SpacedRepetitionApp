@@ -1,7 +1,7 @@
 import Foundation
 import RealmSwift
 
-/// Сервис управления вспомогательной нереляционной БД Realm
+@MainActor
 public final class RealmDictionaryService: ObservableObject {
     public static let shared = RealmDictionaryService()
 
@@ -11,27 +11,30 @@ public final class RealmDictionaryService: ObservableObject {
     private var realmConfig: Realm.Configuration
 
     private init() {
-        self.realmConfig = Realm.Configuration(
-            schemaVersion: 1,
-            deleteRealmIfMigrationNeeded: true
-        )
-        Task {
-            await initializeDictionary()
+        var config = Realm.Configuration()
+        config.schemaVersion = 1
+        config.deleteRealmIfMigrationNeeded = true
+        // Изолируем Realm, чтобы он не пытался индексировать SwiftData классы
+        config.objectTypes = [RealmDictionaryWord.self]
+        self.realmConfig = config
+    }
+
+    private func getRealm() -> Realm? {
+        try? Realm(configuration: realmConfig)
+    }
+
+    public func initializeDictionaryIfNeeded() {
+        guard !isReady else { return }
+
+        guard let realm = getRealm() else {
+            print("Не удалось открыть Realm")
+            return
         }
-    }
 
-    public func getRealm() throws -> Realm {
-        try Realm(configuration: realmConfig)
-    }
-
-    /// Инициализация и первичное наполнение базой из 1000 слов
-    public func initializeDictionary() async {
-        do {
-            let realm = try await Realm(configuration: realmConfig, actor: MainActor.shared)
-            let count = realm.objects(RealmDictionaryWord.self).count
-
-            if count < 1000 {
-                let dtos = RealmSeedDataGenerator.generate1000Words()
+        let count = realm.objects(RealmDictionaryWord.self).count
+        if count < 1000 {
+            let dtos = RealmSeedDataGenerator.generate1000Words()
+            do {
                 try realm.write {
                     realm.delete(realm.objects(RealmDictionaryWord.self))
                     for dto in dtos {
@@ -45,37 +48,39 @@ public final class RealmDictionaryService: ObservableObject {
                         realm.add(entity)
                     }
                 }
+            } catch {
+                print("Ошибка записи в Realm: \(error)")
             }
-
-            let finalCount = realm.objects(RealmDictionaryWord.self).count
-            await MainActor.run {
-                self.wordsCount = finalCount
-                self.isReady = true
-            }
-        } catch {
-            print("Realm init error: \(error)")
         }
+
+        self.wordsCount = realm.objects(RealmDictionaryWord.self).count
+        self.isReady = true
     }
 
-    /// Поиск точного совпадения слова для автозаполнения
-    public func lookup(word: String) -> RealmDictionaryWord? {
-        guard let realm = try? getRealm() else { return nil }
+    public func lookup(word: String) -> DictionaryWordItem? {
+        guard let realm = getRealm() else { return nil }
         let clean = word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return realm.objects(RealmDictionaryWord.self)
-            .filter("word ==[c] %@", clean)
-            .first
+        guard !clean.isEmpty else { return nil }
+
+        if let match = realm.objects(RealmDictionaryWord.self).filter("word ==[c] %@", clean).first {
+            return DictionaryWordItem(from: match)
+        }
+        return nil
     }
 
-    /// Полнотекстовый/префиксный поиск по офлайн-словарю
-    public func search(query: String, limit: Int = 50) -> [RealmDictionaryWord] {
-        guard let realm = try? getRealm() else { return [] }
-        if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return Array(realm.objects(RealmDictionaryWord.self).sorted(byKeyPath: "frequencyRank").prefix(limit))
-        }
+    public func search(query: String, limit: Int = 50) -> [DictionaryWordItem] {
+        guard let realm = getRealm() else { return [] }
         let clean = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let results = realm.objects(RealmDictionaryWord.self)
-            .filter("word CONTAINS[c] %@ OR translation CONTAINS[c] %@", clean, clean)
-            .sorted(byKeyPath: "frequencyRank")
-        return Array(results.prefix(limit))
+
+        let results: Results<RealmDictionaryWord>
+        if clean.isEmpty {
+            results = realm.objects(RealmDictionaryWord.self).sorted(byKeyPath: "frequencyRank")
+        } else {
+            results = realm.objects(RealmDictionaryWord.self)
+                .filter("word CONTAINS[c] %@ OR translation CONTAINS[c] %@", clean, clean)
+                .sorted(byKeyPath: "frequencyRank")
+        }
+
+        return Array(results.prefix(limit)).map { DictionaryWordItem(from: $0) }
     }
 }
