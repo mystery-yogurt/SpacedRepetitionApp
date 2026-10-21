@@ -2,7 +2,7 @@ import Foundation
 import RealmSwift
 
 public class RealmDictionaryWord: Object {
-    @Persisted(primaryKey: true) public var id: String = UUID().uuidString
+    @Persisted(primaryKey: true) public var id: String
     @Persisted(indexed: true) public var word: String = ""
     @Persisted public var transcription: String = ""
     @Persisted public var translation: String = ""
@@ -14,6 +14,7 @@ public class RealmDictionaryWord: Object {
     }
 
     public convenience init(
+        id: String = UUID().uuidString,
         word: String,
         transcription: String,
         translation: String,
@@ -21,7 +22,7 @@ public class RealmDictionaryWord: Object {
         frequencyRank: Int
     ) {
         self.init()
-        self.id = UUID().uuidString
+        self.id = id
         self.word = word
         self.transcription = transcription
         self.translation = translation
