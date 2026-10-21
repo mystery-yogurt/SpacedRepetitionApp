@@ -1,7 +1,9 @@
 import SwiftUI
+import SwiftData
 
 public struct StudySessionView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = StudySessionViewModel()
 
     public init() {}
@@ -9,26 +11,36 @@ public struct StudySessionView: View {
     public var body: some View {
         NavigationStack {
             VStack {
-                if viewModel.isCompleted {
+                if viewModel.isCompleted || viewModel.cards.isEmpty {
                     completionView
                 } else if let card = viewModel.currentCard {
                     // Индикатор прогресса
-                    Text(viewModel.progressText)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .padding(.top, 8)
+                    HStack {
+                        Text(viewModel.progressText)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        if let entity = viewModel.currentCardEntity {
+                            Spacer()
+                            Text("EF: \(String(format: "%.2f", entity.easinessFactor)) | Дней: \(entity.intervalDays)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 8)
 
                     Spacer()
 
-                    // Двусторонняя флэш-карточка
+                    // Двусторонняя карточка
                     FlashcardView(card: card, isFlipped: $viewModel.isCardFlipped)
 
                     Spacer()
 
-                    // Кнопки оценки уровня запоминания (активны после переворота)
+                    // Кнопки оценки SM-2
                     if viewModel.isCardFlipped {
                         VStack(spacing: 8) {
-                            Text("Оцените, насколько хорошо вы помните слово:")
+                            Text("Оцените легкость ответа (SM-2):")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
 
@@ -62,14 +74,15 @@ public struct StudySessionView: View {
                     }
                 }
             }
-            .navigationTitle("Тренировка")
+            .navigationTitle("Интервальное повторение")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Выход") {
-                        dismiss()
-                    }
+                    Button("Выход") { dismiss() }
                 }
+            }
+            .onAppear {
+                viewModel.configure(with: modelContext)
             }
         }
     }
@@ -80,13 +93,15 @@ public struct StudySessionView: View {
                 .font(.system(size: 70))
                 .foregroundColor(.green)
 
-            Text("Сессия завершена!")
+            Text("Очередь повторений чиста!")
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text("Все запланированные слова успешно повторены.")
+            Text("Все запланированные слова успешно повторены. SwiftData обновила даты следующих показов.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
 
             Button("Вернуться в меню") {
                 dismiss()
