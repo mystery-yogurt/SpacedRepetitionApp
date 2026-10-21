@@ -76,9 +76,7 @@ public struct RealmDictionaryBrowserView: View {
                 }
                 Button("Отмена", role: .cancel) {}
             } message: {
-                if let word = selectedWordToImport {
-                    Text("Импортировать «\(word.word)» в вашу личную колоду?")
-                }
+                Text(selectedWordToImport != nil ? "Импортировать «\(selectedWordToImport!.word)» в вашу личную колоду?" : "")
             }
         }
     }
