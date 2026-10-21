@@ -7,11 +7,14 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14 # macOS с Xcode 15+ и поддержкой iOS 17 SDK
+    runs-on: macos-14
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Select Xcode 15.4
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
 
       - name: Install XcodeGen
         run: brew install xcodegen
