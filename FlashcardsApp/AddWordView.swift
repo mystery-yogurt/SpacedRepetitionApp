@@ -1,12 +1,15 @@
 import SwiftUI
+import SwiftData
 
 public struct AddWordView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = AddWordViewModel()
-    public let onCardCreated: (WordCard) -> Void
 
-    public init(onCardCreated: @escaping (WordCard) -> Void) {
-        self.onCardCreated = onCardCreated
+    public var defaultDeck: DeckEntity?
+
+    public init(defaultDeck: DeckEntity? = nil) {
+        self.defaultDeck = defaultDeck
     }
 
     public var body: some View {
@@ -28,9 +31,33 @@ public struct AddWordView: View {
 
                 Section(header: Text("Детали карточки")) {
                     TextField("Иностранное слово", text: $viewModel.recognizedWord)
+                        .onChange(of: viewModel.recognizedWord) { _, newValue in
+                            viewModel.lookupInRealmDictionary(word: newValue)
+                        }
+
+                    if viewModel.isAutofilledFromRealm {
+                        HStack {
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.purple)
+                            Text("Автозаполнено из словаря Realm")
+                                .font(.caption)
+                                .foregroundColor(.purple)
+                        }
+                    }
+
                     TextField("Транскрипция", text: $viewModel.transcription)
                     TextField("Перевод", text: $viewModel.translation)
                     TextField("Пример использования", text: $viewModel.exampleUsage)
+                }
+
+                if let deck = defaultDeck {
+                    Section(header: Text("Целевая колода (SwiftData)")) {
+                        HStack {
+                            Image(systemName: deck.iconName)
+                                .foregroundColor(.blue)
+                            Text(deck.title)
+                        }
+                    }
                 }
             }
             .navigationTitle("Новое слово")
@@ -41,8 +68,7 @@ public struct AddWordView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Сохранить") {
-                        if let newCard = viewModel.buildNewCard() {
-                            onCardCreated(newCard)
+                        if viewModel.saveCard(to: defaultDeck, in: modelContext) {
                             dismiss()
                         }
                     }
